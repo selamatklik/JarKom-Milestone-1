@@ -9,13 +9,15 @@
 #define SERVER "127.0.0.1"  //ip address of udp server
 #define BUFLEN 512  //Max length of buffer
 #define PORT 8888   //The port on which to listen for incoming data
- 
+int readFile(char *message,char *filename);
+
 int main(void)
 {
     struct sockaddr_in si_other;
     int s, slen=sizeof(si_other);
     char buf[BUFLEN];
     char message[BUFLEN];
+    char filename[BUFLEN];
     WSADATA wsa;
  
     //Initialise winsock
@@ -43,8 +45,9 @@ int main(void)
     //start communication
     while(1)
     {
-        printf("Enter message : ");
-        gets(message);
+        printf("Enter filename : ");
+        scanf("%s",filename);
+        readFile(message,filename);
          
         //send the message
         if (sendto(s, message, strlen(message) , 0 , (struct sockaddr *) &si_other, slen) == SOCKET_ERROR)
@@ -70,4 +73,16 @@ int main(void)
     WSACleanup();
  
     return 0;
+}
+int readFile(char *message,char *filename){
+    FILE *file = fopen(filename,"r");
+    char c = fgetc(file);
+    int i = 0;
+    while (c!=EOF && i < BUFLEN){
+        message[i] = c;
+        i+=1;
+        c=fgetc(file);
+    }
+    printf("file succesfully read\n");
+    fclose(file);
 }
