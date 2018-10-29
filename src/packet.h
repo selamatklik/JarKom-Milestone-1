@@ -19,16 +19,16 @@ typedef struct {
 	char checksum;
 } packet_ack;
 
-void packet_to_raw(packet pack, char* raw);
+void packet_to_rawStr(packet pack, char* rawStr);
 
-void to_packet(packet* pack, char* raw);
+void to_packet(packet* pack, char* rawStr);
 
-void ack_to_raw(packet_ack ack_pack, char* raw);
+void ack_to_rawStr(packet_ack ack_pack, char* rawStr);
 
-void to_ack(packet_ack* ack_pack, char* raw);
+void to_ack(packet_ack* ack_pack, char* rawStr);
 
 char checksum_str(char* x, int len);
 
-packet create_packet(int n, int data);
+packet create_packet(int n, char * dataStr);
 
 #endif
