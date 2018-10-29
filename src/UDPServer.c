@@ -3,11 +3,16 @@
 */
  
 #include<stdio.h>
+#include<stdlib.h>
+#include<winsock2.h>
  
 #pragma comment(lib,"ws2_32.lib") //Winsock Library
  
 #define BUFLEN 512  //Max length of buffer
 #define PORT 8888   //The port on which to listen for incoming data
+#define FILEOUTPUTNAME "output.txt"
+
+int writeFile(char *message, char *filename);
  
 int main()
 {
@@ -67,6 +72,7 @@ int main()
         //print details of the client/peer and the data received
         printf("Received packet from %s:%d\n", inet_ntoa(si_other.sin_addr), ntohs(si_other.sin_port));
         printf("Data: %s\n" , buf);
+        writeFile(buf,FILEOUTPUTNAME);
          
         //now reply the client with the same data
         if (sendto(s, buf, recv_len, 0, (struct sockaddr*) &si_other, slen) == SOCKET_ERROR)
@@ -80,4 +86,13 @@ int main()
     WSACleanup();
      
     return 0;
+}
+int writeFile(char *message, char *filename){
+    FILE *file = fopen(filename,"w");
+    int i = 0;
+    while (message[i]!='\0' && i < BUFLEN){
+        fputc(message[i],file);
+        i+=1;
+    }
+    fclose(file);
 }
