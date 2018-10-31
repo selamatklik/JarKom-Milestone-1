@@ -5,10 +5,7 @@
 #include <netinet/in.h> 
 #include <string.h>
 
-#define PORT 8085
-#define MAXLINE 1024
-
-int sock_fd, len;
+int sock_fd, len, window_size, buffer_size, port;
 struct sockaddr_in server_address, client_address;
 
 void create_socket() {
@@ -23,7 +20,7 @@ void fill_server_info() {
     memset(&server_address,0,sizeof(server_address));
     server_address.sin_family = AF_INET;
     server_address.sin_addr.s_addr = INADDR_ANY;
-    server_address.sin_port = htons(PORT);
+    server_address.sin_port = htons(port);
 }
 
 void bind_socket() {
@@ -36,8 +33,8 @@ void bind_socket() {
 
 void receive_message() {
     int n;
-    char buffer[MAXLINE];
-    n = recvfrom(sock_fd, (char*)buffer, MAXLINE, MSG_WAITALL, (struct sockaddr*) &client_address, &len);
+    char buffer[buffer_size];
+    n = recvfrom(sock_fd, (char*)buffer, buffer_size, MSG_WAITALL, (struct sockaddr*) &client_address, &len);
     buffer[n] = '\0';
 
     printf("Client: %s\n", buffer);
@@ -48,7 +45,17 @@ void send_ack() {
     sendto(sock_fd, ack, strlen(ack), MSG_CONFIRM, (struct sockaddr*) &client_address, len);
 }
 
-int main() {
+int main(int argc, char* argv[]) {
+
+    if (argc == 5) {
+        window_size = atoi(argv[2]);
+        buffer_size = atoi(argv[3]);
+        port = atoi(argv[4]);
+    } else {
+        perror("Command format: ./recvfile <filename> <windowsize> <buffersize> <port>");
+        return 1;
+    }
+
     create_socket();
     fill_server_info();
     bind_socket();

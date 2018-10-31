@@ -52,10 +52,8 @@ int main(int argc, char* argv[]) {
 		dest_port = atoi(argv[5]);
 	} else {
 		perror("Command format: ./sendfile <filename> <windowsize> <buffersize> <destination_ip> <destination_port>");
-		exit(EXIT_FAILURE);
+		return 1;
 	}
-
-	buffer_size = 1024;
 
 	create_socket();
 	fill_server_info();
