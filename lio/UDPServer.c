@@ -6,15 +6,33 @@
 #include<stdlib.h>
 #include<winsock2.h>
 #include<string.h>
-#include"Packet.h"
+#include "Packet.h"
+#include "Utility.h"
  
-#define BUFLEN 1034  //Max length of buffer
-#define PORT 8888   //The port on which to listen for incoming data
-#define FILEOUTPUTNAME "output.txt"
+// #define BUFLEN 1034  //Max length of buffer
+// #define PORT 8888   //The port on which to listen for incoming data
+// #define FILEOUTPUTNAME "output.txt"
 
-int writeFile(char *message, char *filename);
-int main()
+// int writeFile(char *message, char *filename);
+
+int main(int argc, char * argv[])
 {
+    if(argc != 5) {
+        perror("Command format = recvfile <filename> <windowsize> <buffersize> <port>");
+        exit(1);
+    }
+
+    // initialize variable from command
+    char * FILEOUTPUTNAME = argv[1];
+    int WINDOWSIZE = charToInt(argv[2]);    
+    int BUFLEN = charToInt(argv[3]);
+    int PORT = charToInt(argv[4]);
+
+    printf("FILE NAME : %s\n", FILEOUTPUTNAME);
+    printf("WINDOW SIZE : %d\n", WINDOWSIZE);
+    printf("BUFFER SIZE : %d\n", BUFLEN);
+    printf("PORT : %d\n", PORT);
+
     SOCKET s;
     struct sockaddr_in server, si_other;
     int slen , recv_len;
@@ -77,7 +95,7 @@ int main()
         printf("DataLength: %d\n",p.dataLength);
         printf("Data:\n%s\n",p.data);
         printf("checksum:%x\n",p.checksum);
-        writeFile(p.data,FILEOUTPUTNAME);
+        writeFile(p.data,FILEOUTPUTNAME,BUFLEN);
         memset(buf,'\0', BUFLEN);
         acknowledgement=createACK(p.sequenceNumber+1);
         printf("ack: %c\nnextSequenceNumber: %d\nchecksum: %x\n",acknowledgement.ack,acknowledgement.nextSequenceNumber,acknowledgement.checksum);
@@ -94,13 +112,4 @@ int main()
     WSACleanup();
      
     return 0;
-}
-int writeFile(char *message, char *filename){
-    FILE *file = fopen(filename,"w");
-    int i = 0;
-    while (message[i]!='\0' && i < BUFLEN){
-        fputc(message[i],file);
-        i+=1;
-    }
-    fclose(file);
 }

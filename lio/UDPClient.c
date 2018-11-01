@@ -3,15 +3,37 @@
 */
 #include<stdio.h>
 #include<winsock2.h>
+#include<string.h>
 #include"Packet.h"
+#include "Utility.h"
  
-#define SERVER "127.0.0.1"  //ip address of udp server
-#define BUFLEN 1034  //Max length of buffer
-#define PORT 8888   //The port on which to listen for incoming data
+// #define SERVER "127.0.0.1"  //ip address of udp server
+// #define BUFLEN 1034  //Max length of buffer
+// #define PORT 8888   //The port on which to listen for incoming data
 
-int readFile(char *message,char *filename);
-int main(void)
+// int readFile(char *message,char *filename, int BUFLEN);
+// int charToInt(char * c);
+
+int main(int argc, char * argv[])
 {
+    if(argc != 6) {
+        perror("Command format = sendfile <filename> <windowsize> <buffersize> <destination_ip> <destination_port>");
+        exit(1);
+    }
+
+    // initialize variable from command
+    char * FILENAME = argv[1];
+    int WINDOWSIZE = charToInt(argv[2]);    
+    int BUFLEN = charToInt(argv[3]);
+    char * SERVER = argv[4];
+    int PORT = charToInt(argv[5]);
+
+    printf("FILE NAME : %s\n", FILENAME);
+    printf("WINDOW SIZE : %d\n", WINDOWSIZE);
+    printf("BUFFER SIZE : %d\n", BUFLEN);
+    printf("DESTINATION IP : %s\n", SERVER);
+    printf("DESTINATION PORT : %d\n", PORT);
+
     struct sockaddr_in si_other;
     int s, slen=sizeof(si_other);
     char buf[BUFLEN];
@@ -21,7 +43,8 @@ int main(void)
     Packet p;
     ACK acknowledgement;
  
-    //Initialise winsock
+
+    // Initialise winsock
     printf("\nInitialising Winsock...");
     if (WSAStartup(MAKEWORD(2,2),&wsa) != 0)
     {
@@ -49,7 +72,7 @@ int main(void)
         printf("Enter filename : ");
         scanf("%s",filename);
         memset(message,'\0',BUFLEN);
-        readFile(message,filename);
+        readFile(message,filename, BUFLEN);
         p=createPacket(message,1);
         printf("soh: %x\n",p.soh);
         printf("SeqNumber: %d\n",p.sequenceNumber);
@@ -83,16 +106,4 @@ int main(void)
     WSACleanup();
  
     return 0;
-}
-int readFile(char *message,char *filename){
-    FILE *file = fopen(filename,"r");
-    char c = fgetc(file);
-    int i = 0;
-    while (c!=EOF && i < BUFLEN){
-        message[i] = c;
-        i+=1;
-        c=fgetc(file);
-    }
-    printf("file succesfully read\n");
-    fclose(file);
 }
