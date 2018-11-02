@@ -8,13 +8,14 @@
 #include<string.h>
 #include "Packet.h"
 #include "Utility.h"
+#include "stdbool.h"
  
 #define BUFLEN 1035  //Max length of buffer
 // #define PORT 8888   //The port on which to listen for incoming data
 // #define FILEOUTPUTNAME "output.txt"
 
-// int writeFile(char *message, char *filename);
-
+int writeFile(char *message, char *filename);
+int getLFR(bool *packetReceived, int BUFFERSIZE);
 int main(int argc, char * argv[])
 {
     if(argc != 5) {
@@ -27,7 +28,9 @@ int main(int argc, char * argv[])
     int WINDOWSIZE = charToInt(argv[2]);    
     int BUFFERSIZE = charToInt(argv[3]);
     int PORT = charToInt(argv[4]);
-    int LFR=0,LAF=WINDOWSIZE-1;
+    Packet listOfPacket[BUFFERSIZE];
+    bool packetReceived[BUFFERSIZE+1];
+    int LAF=WINDOWSIZE-1,LFR=0;
 
     printf("FILE NAME : %s\n", FILEOUTPUTNAME);
     printf("WINDOW SIZE : %d\n", WINDOWSIZE);
@@ -42,6 +45,7 @@ int main(int argc, char * argv[])
     ACK acknowledgement;
     Packet p;
     slen = sizeof(si_other) ;
+    memset(packetReceived,'\0',BUFFERSIZE);
      
     //Initialise winsock
     printf("\nInitialising Winsock...");
@@ -73,7 +77,7 @@ int main(int argc, char * argv[])
     puts("Bind done");
     writeFileInitiate(FILEOUTPUTNAME);
     //keep listening for data
-    while(1)
+    while(p.soh!=0x0)
     {
         printf("Waiting for data...");
         fflush(stdout);
@@ -91,26 +95,53 @@ int main(int argc, char * argv[])
         //print details of the client/peer and the data received
         printf("Received packet from %s:%d\n", inet_ntoa(si_other.sin_addr), ntohs(si_other.sin_port));
         p = parsePacket(buf);
-        // printf("soh: %x\n",p.soh);
+        printf("soh: %x\n",p.soh);
         // printf("SeqNumber: %d\n",p.sequenceNumber);
         // printf("DataLength: %d\n",p.dataLength);
         // printf("Data:\n%s\n",p.data);
         // printf("checksum:%x\n",p.checksum);
-        writeFile(p.data,FILEOUTPUTNAME);
-        memset(buf,'\0', BUFLEN);
-        acknowledgement=createACK(p.sequenceNumber+1);
-        printf("ack: %c\nnextSequenceNumber: %d\nchecksum: %x\n",acknowledgement.ack,acknowledgement.nextSequenceNumber,acknowledgement.checksum);
-        ackToString(acknowledgement,buf);
-        //now reply the client with the same data
-        if (sendto(s, buf, 6, 0, (struct sockaddr*) &si_other, slen) == SOCKET_ERROR)
-        {
-            printf("sendto() failed with error code : %d" , WSAGetLastError());
-            exit(EXIT_FAILURE);
+        if (p.checksum==checksum(p.data,p.dataLength) && p.sequenceNumber%BUFFERSIZE<=LAF && p.soh!=0x0){
+            // writeFile(p.data,FILEOUTPUTNAME);
+            listOfPacket[p.sequenceNumber%BUFFERSIZE] = p;
+            packetReceived[p.sequenceNumber%BUFFERSIZE] = true;
+            LFR = getLFR(packetReceived,BUFFERSIZE);
+            if (LFR + WINDOWSIZE < BUFFERSIZE){
+                LAF =  LFR + WINDOWSIZE;
+            }else{
+                LAF = BUFFERSIZE-1;
+            }
+            printf("seqnum:%d\n",p.sequenceNumber);
+            printf("LFR:%d\nLAF:%d\n",LFR,LAF);
+            memset(buf,'\0', BUFLEN);
+            acknowledgement=createACK(LFR+1);
+            printf("ack: %c\nnextSequenceNumber: %d\nchecksum: %x\n",acknowledgement.ack,acknowledgement.nextSequenceNumber,acknowledgement.checksum);
+            ackToString(acknowledgement,buf);
+            //now reply the client with the same data
+            if (sendto(s, buf, 6, 0, (struct sockaddr*) &si_other, slen) == SOCKET_ERROR)
+            {
+                printf("sendto() failed with error code : %d" , WSAGetLastError());
+                exit(EXIT_FAILURE);
+            }   
+        }
+        if (LFR == BUFFERSIZE-1){
+             for (int i=0;i<BUFFERSIZE;i++){
+                writeFile(listOfPacket[i].data,FILEOUTPUTNAME);
+            }
+            memset(packetReceived,false,BUFFERSIZE);
+            LAF = 0;
+            LFR = WINDOWSIZE-1;
         }
     }
- 
     closesocket(s);
     WSACleanup();
      
     return 0;
+}
+int getLFR(bool *packetReceived, int BUFFERSIZE){
+    int i;
+    for (i=BUFFERSIZE-1;i>=0;i--){
+        if (packetReceived[i]==true){
+            return i;
+        }
+    }
 }

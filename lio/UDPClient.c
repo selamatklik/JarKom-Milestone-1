@@ -72,6 +72,12 @@ int main(int argc, char * argv[])
     while(1)
     {
         if(SWS*MAXDATA >= strlen(bufferFileInput)){
+            p.soh=0x0;
+            if (sendto(s, message, BUFLEN , 0 , (struct sockaddr *) &si_other, slen) == SOCKET_ERROR)
+            {
+                printf("sendto() failed with error code : %d" , WSAGetLastError());
+                exit(EXIT_FAILURE);
+            }
             break;
         }
         int idx;
@@ -79,7 +85,7 @@ int main(int argc, char * argv[])
         for(idx = 0; idx<MAXDATA && idx < strlen(bufferFileInput) ; idx++){
             message[idx] = bufferFileInput[MAXDATA*SWS+idx];
         }
-        printf("message: %s\n",message);
+        // printf("message: %s\n",message);
         p=createPacket(message,SWS);
         printf("soh: %x\n",p.soh);
         printf("SeqNumber: %d\n",p.sequenceNumber);
@@ -109,7 +115,7 @@ int main(int argc, char * argv[])
         printf("ack: %c\nnextSequenceNumber: %d\nchecksum: %x\n",acknowledgement.ack,acknowledgement.nextSequenceNumber,acknowledgement.checksum);
         SWS++;
     }
- 
+    
     closesocket(s);
     WSACleanup();
  

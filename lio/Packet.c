@@ -11,7 +11,7 @@ Packet createPacket(char* data,int sequenceNumber){
         i++;
     }
     p.data[1024]='\0';
-    printf("\n\n fromcreate: %s\n",p.data);
+    // printf("\n\n fromcreate: %s\n",p.data);
     p.dataLength=i;
     printf("data length: %d\n", p.dataLength);
     p.checksum=checksum(p.data,p.dataLength);
