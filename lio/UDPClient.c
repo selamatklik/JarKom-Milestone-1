@@ -15,6 +15,9 @@
 
 // int readFile(char *message,char *filename, int PACKETLEN);
 // int charToInt(char * c);
+int sock_fd, n, len, dest_port, buffer_size;
+struct sockaddr_in server_address; 
+struct hostent *dest_hostnet;
 
 int main(int argc, char * argv[])
 {
@@ -22,7 +25,6 @@ int main(int argc, char * argv[])
         perror("Command format = sendfile <filename> <windowsize> <buffersize> <destination_ip> <destination_port>");
         exit(1);
     }
-
     // initialize variable from command
     char * FILENAME = argv[1];
     int WINDOWSIZE = charToInt(argv[2]);    

@@ -4,13 +4,27 @@
 
 int main(int argc, char *argv[])
 {
-    struct hostent *lh;
+    FILE *file = fopen("input.txt","rb");
+    int max_buf_len = 10;
+    
+    int read_done = 0;
+    char buffer[max_buf_len];
 
-    lh = gethostbyname(argv[1]);
-    if (lh)
-        printf("%s",lh->h_name);
-    else
-        herror("gethostbyname");
-
-    return 0;
+    while (!read_done) {
+        int buf_len = fread(buffer,1,max_buf_len,file);
+        if (buf_len == max_buf_len) {
+            char remain[1];
+            int remain_len = fread(remain,1,1,file);
+            if (remain_len == 0) {
+                read_done = 1;
+            }
+            int remain_pointer = fseek(file,-1,SEEK_CUR);
+        } else if (buf_len < max_buf_len) {
+            read_done = 1;
+        }
+        for (int i=0; i<buf_len; i++) {
+            printf("%c",buffer[i]);
+        }
+        printf("\n");
+    }
 }

@@ -22,7 +22,7 @@ int writeFile(char *message, char *filename){
     int i = 0;
     while (message[i]!='\0'){
         fputc(message[i],file);
-        i+=1;
+        i++;
     }
     fclose(file);
 }
