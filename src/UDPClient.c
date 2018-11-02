@@ -74,6 +74,7 @@ int main(void)
  
     return 0;
 }
+
 int readFile(char *message,char *filename){
     FILE *file = fopen(filename,"r");
     char c = fgetc(file);
