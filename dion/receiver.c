@@ -4,6 +4,7 @@
 #include <stdlib.h> 
 #include <netinet/in.h> 
 #include <string.h>
+#include "Packet.h"
 
 int sock_fd, len, window_size, buffer_size, port;
 struct sockaddr_in server_address, client_address;
@@ -31,25 +32,26 @@ void bind_socket() {
     }
 }
 
-void receive_message() {
+Packet receive_message() {
     int n;
-    char buffer[buffer_size];
+    char buffer[buffer_size + 1];
     n = recvfrom(sock_fd, (char*)buffer, buffer_size, MSG_WAITALL, (struct sockaddr*) &client_address, &len);
     buffer[n] = '\0';
-
-    printf("Client: %s\n", buffer);
+    
+    return parsePacket(buffer);
 }
 
-void send_ack() {
-    char* ack = "ACK";
-    sendto(sock_fd, ack, strlen(ack), MSG_CONFIRM, (struct sockaddr*) &client_address, len);
+void send_ack(ACK ack) {
+    char str_ack[7];
+    ackToString(ack, str_ack);
+    sendto(sock_fd, str_ack, 6, MSG_CONFIRM, (struct sockaddr*) &client_address, len);
 }
 
 int main(int argc, char* argv[]) {
 
     if (argc == 5) {
         window_size = atoi(argv[2]);
-        buffer_size = atoi(argv[3]);
+        buffer_size = 1024 * atoi(argv[3]);
         port = atoi(argv[4]);
     } else {
         perror("Command format: ./recvfile <filename> <windowsize> <buffersize> <port>");
@@ -62,7 +64,7 @@ int main(int argc, char* argv[]) {
 
     memset(&client_address,0,sizeof(client_address));
 
-    int finish = 1;
+    int finish = 0;
     while (!finish) {
         int arr_frame_rcv[window_size];
         for (int i=0; i<window_size; i++) arr_frame_rcv[i] = 0;
@@ -70,17 +72,15 @@ int main(int argc, char* argv[]) {
         int last_frame_rcv = -1;
         int largest_acc_frame = last_frame_rcv + window_size;
 
-        while (1) {
-            receive_message();
-            sendto();
-        }    
-    }
-
-    int i=0;
-    while (i <5) {
-        receive_message();
-        send_ack();
-        i++;
+        Packet curr_packet = receive_message();
+        printf("%s\n",curr_packet.data);
+        ACK curr_ack = createACK(curr_packet.sequenceNumber + 1);
+        send_ack(curr_ack);
+        // if (curr_packet.checksum == checksum(curr_packet.data, curr_packet.dataLength)) {
+        //     ACK curr_ack = createACK(curr_packet.sequenceNumber + 1);
+        //     send_ack(curr_ack);
+        // }
+        
     }
 
     close(sock_fd);
