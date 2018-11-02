@@ -80,10 +80,10 @@ int main(int argc, char * argv[])
         }
         int idx;
         memset(message,'\0',BUFLEN);
-        for(idx = 0; idx<BUFLEN && idx < strlen(bufferFileInput) ; idx++){
+        for(idx = 0; idx<MAXDATA && idx < strlen(bufferFileInput) ; idx++){
             message[idx] = bufferFileInput[MAXDATA*SWS+idx];
         }
-        // printf("message: %s\n",message);
+        printf("message: %s\n",message);
         p=createPacket(message,SWS);
         printf("soh: %x\n",p.soh);
         printf("SeqNumber: %d\n",p.sequenceNumber);

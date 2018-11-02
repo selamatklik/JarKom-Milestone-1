@@ -9,6 +9,7 @@ Packet createPacket(char* data,int sequenceNumber){
         p.data[i]=*(data+i);
         i++;
     }
+    p.data[i]='\0';
     p.dataLength=i;
     p.checksum=checksum(p.data,p.dataLength);
     return p;
@@ -30,19 +31,19 @@ void packetToString(Packet p, char* message){
     for (i=0; i<p.dataLength ; i++){
         message[i+9]=p.data[i];
     }
-    message[10+i]=p.checksum;
+    message[9+i]=p.checksum;
 }
 
 Packet parsePacket(char* packet){
     Packet p;
     int i;
     p.soh=packet[0];
-    p.sequenceNumber=(int) packet[1];
-    p.dataLength=(int) packet[5];
+    p.sequenceNumber=((int) *(packet+1)) + ((int) *(packet+2)<<8) + ((int) *(packet+3)<<16) + ((int) *(packet+4)<<24);;
+    p.dataLength=((int) *(packet+5)) + ((int) *(packet+6)<<8) + ((int) *(packet+7)<<16) + ((int) *(packet+8)<<24);
     for(i=0; i<p.dataLength; i++){
         p.data[i]=packet[i+9];
     }
-    p.checksum=packet[10+i];
+    p.checksum=packet[9+i];
     return p;
 }
 
