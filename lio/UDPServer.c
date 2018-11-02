@@ -27,6 +27,7 @@ int main(int argc, char * argv[])
     int WINDOWSIZE = charToInt(argv[2]);    
     int BUFFERSIZE = charToInt(argv[3]);
     int PORT = charToInt(argv[4]);
+    int LFR=0,LAF=WINDOWSIZE-1;
 
     printf("FILE NAME : %s\n", FILEOUTPUTNAME);
     printf("WINDOW SIZE : %d\n", WINDOWSIZE);
@@ -90,11 +91,11 @@ int main(int argc, char * argv[])
         //print details of the client/peer and the data received
         printf("Received packet from %s:%d\n", inet_ntoa(si_other.sin_addr), ntohs(si_other.sin_port));
         p = parsePacket(buf);
-        printf("soh: %x\n",p.soh);
-        printf("SeqNumber: %d\n",p.sequenceNumber);
-        printf("DataLength: %d\n",p.dataLength);
-        printf("Data:\n%s\n",p.data);
-        printf("checksum:%x\n",p.checksum);
+        // printf("soh: %x\n",p.soh);
+        // printf("SeqNumber: %d\n",p.sequenceNumber);
+        // printf("DataLength: %d\n",p.dataLength);
+        // printf("Data:\n%s\n",p.data);
+        // printf("checksum:%x\n",p.checksum);
         writeFile(p.data,FILEOUTPUTNAME);
         memset(buf,'\0', BUFLEN);
         acknowledgement=createACK(p.sequenceNumber+1);
