@@ -70,6 +70,7 @@ int main(int argc, char * argv[])
         exit(EXIT_FAILURE);
     }
     puts("Bind done");
+    writeFileInitiation(FILEOUTPUTNAME);
  
     //keep listening for data
     while(1)
@@ -95,7 +96,7 @@ int main(int argc, char * argv[])
         printf("DataLength: %d\n",p.dataLength);
         printf("Data:\n%s\n",p.data);
         printf("checksum:%x\n",p.checksum);
-        writeFile(p.data,FILEOUTPUTNAME,BUFLEN);
+        writeFile(p.data,FILEOUTPUTNAME);
         memset(buf,'\0', BUFLEN);
         acknowledgement=createACK(p.sequenceNumber+1);
         printf("ack: %c\nnextSequenceNumber: %d\nchecksum: %x\n",acknowledgement.ack,acknowledgement.nextSequenceNumber,acknowledgement.checksum);

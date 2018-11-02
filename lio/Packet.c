@@ -40,7 +40,7 @@ Packet parsePacket(char* packet){
     p.soh=packet[0];
     p.sequenceNumber=((int) *(packet+1)) + ((int) *(packet+2)<<8) + ((int) *(packet+3)<<16) + ((int) *(packet+4)<<24);;
     p.dataLength=((int) *(packet+5)) + ((int) *(packet+6)<<8) + ((int) *(packet+7)<<16) + ((int) *(packet+8)<<24);
-    for(i=0; i<p.dataLength; i++){
+    for(i=0; i<1024; i++){
         p.data[i]=packet[i+9];
     }
     p.checksum=packet[9+i];

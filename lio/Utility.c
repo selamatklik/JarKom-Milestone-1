@@ -12,13 +12,16 @@ int readFile(char *message,char *filename, int BUFLEN){
     printf("file succesfully read\n");
     fclose(file);
 }
-
-int writeFile(char *message, char *filename, int BUFLEN){
+int writeFileInitiation(char *filename){
     FILE *file = fopen(filename,"w");
+    fclose(file);
+}
+int writeFile(char *message, char *filename){
+    FILE *file = fopen(filename,"a");
     int i = 0;
-    while (message[i]!='\0' && i < BUFLEN){
+    while (message[i]!='\0'){
         fputc(message[i],file);
-        i+=1;
+        i++;
     }
     fclose(file);
 }
