@@ -11,6 +11,9 @@
 #include <sys/time.h>
 #include <pthread.h>
 
+#include "Packet.h"
+#include "Utility.h"
+
 #define BUFFER_LEN 512
 #define TIME_OUT 5000	// milliseconds
 
@@ -130,7 +133,6 @@ void slide_window(int step, int* arr_ack_state, int* arr_frame_send, int* arr_fr
 
 int main(int argc, char* argv[]) { 
 	char *file_name;
-	char message[BUFFER_LEN];
 
 	if (argc == 6) {
 		file_name = argv[1];
@@ -142,12 +144,10 @@ int main(int argc, char* argv[]) {
 		perror("Command format: ./sendfile <filename> <windowsize> <buffersize> <destination_ip> <destination_port>");
 		exit(EXIT_FAILURE);
 	}
-	
-	read_file(message,file_name);
-	
+
 	create_socket();
 	fill_server_info();
-	
+
 	int arr_ack_state[window_size], arr_frame_send[window_size];
 	unsigned long arr_frame_time[window_size];
 
@@ -158,19 +158,27 @@ int main(int argc, char* argv[]) {
 		gettimeofday(&start, NULL);
 		arr_frame_time[i] = start.tv_usec;
 	}
-	
+
 	int nb_frame = 10;
 	int frame_number;
 
 	last_ack_rcv = -1;
 	last_frame_send = last_ack_rcv + window_size;
 
+	char buffer[max_buf_len];
+	
 	pthread_t rcv_ack_thread;
 	int rcv_ack_thread_state;
 
 	rcv_ack_thread_state = pthread_create(&rcv_ack_thread,NULL,&receive_ack,NULL);
 
+	int read_finish = 0;
+	while (!read_finish) {
+		int buf_len = fread()
+	}
+
 	int finish = 0;
+
 	while (!finish) {
 		int nb_step = step_to_slide(arr_ack_state);
 		slide_window(nb_step,arr_ack_state,arr_frame_send,arr_frame_time);
@@ -185,7 +193,7 @@ int main(int argc, char* argv[]) {
 				int loss = !arr_ack_state[i] && diff_time > TIME_OUT;
 
 				if (!arr_frame_send[i] || loss) {
-					send_message();
+					send_message(Packet p);
 					arr_frame_send[i] = 1;
 					arr_frame_time[i] = now.tv_usec;
 				}
