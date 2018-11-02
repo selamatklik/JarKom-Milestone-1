@@ -5,11 +5,13 @@ Packet createPacket(char* data,int sequenceNumber){
     p.soh=0x1;
     p.sequenceNumber=sequenceNumber;
     int i = 0;
+    memset(p.data, '\0', 1024);
     while(*(data+i)!='\0' && i < 1024){
         p.data[i]=*(data+i);
         i++;
     }
     p.data[i]='\0';
+    printf("\n\n fromcreate: %s\n",p.data);
     p.dataLength=i;
     p.checksum=checksum(p.data,p.dataLength);
     return p;

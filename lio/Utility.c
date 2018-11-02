@@ -13,14 +13,40 @@ int readFile(char *message,char *filename, int BUFLEN){
     fclose(file);
 }
 
-int writeFile(char *message, char *filename, int BUFLEN){
+int writeFileInitiate(char *filename){
     FILE *file = fopen(filename,"w");
+    fclose(file);
+}
+int writeFile(char *message, char *filename){
+    FILE *file = fopen(filename,"a");
     int i = 0;
-    while (message[i]!='\0' && i < BUFLEN){
+    while (message[i]!='\0'){
         fputc(message[i],file);
         i+=1;
     }
     fclose(file);
+}
+
+int readFileCont(char *message, char *filename, int BUFLEN, int readCount){
+    FILE *file = fopen(filename,"r");
+    fseek(file, readCount*BUFLEN, SEEK_SET );
+    char c = fgetc(file);
+    int i = 0;
+    while (c!=EOF && i < BUFLEN){
+        message[i] = c;
+        i+=1;
+        c=fgetc(file);
+    }
+
+    printf("file succesfully read\n");
+    fclose(file);
+    
+    if(i<BUFLEN){
+        return 1;
+    } else {
+        return 0;
+    }
+    
 }
 
 int charToInt(char * c) {

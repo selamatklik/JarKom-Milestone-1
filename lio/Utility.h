@@ -6,7 +6,9 @@
 #include <string.h>
 
 int readFile(char *message,char *filename, int BUFLEN);
-int writeFile(char *message, char *filename, int BUFLEN);
+int writeFileInitiate(char *filename);
+int writeFile(char *message, char *filename);
+int readFileCont(char * message, char * filename, int BUFLEN, int readCount);
 int charToInt(char * c);
 
 #endif
