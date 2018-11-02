@@ -9,7 +9,7 @@
 #include "Packet.h"
 #include "Utility.h"
  
-// #define BUFLEN 1034  //Max length of buffer
+#define BUFLEN 1034  //Max length of buffer
 // #define PORT 8888   //The port on which to listen for incoming data
 // #define FILEOUTPUTNAME "output.txt"
 
@@ -25,12 +25,12 @@ int main(int argc, char * argv[])
     // initialize variable from command
     char * FILEOUTPUTNAME = argv[1];
     int WINDOWSIZE = charToInt(argv[2]);    
-    int BUFLEN = charToInt(argv[3]);
+    int BUFFERSIZE = charToInt(argv[3]);
     int PORT = charToInt(argv[4]);
 
     printf("FILE NAME : %s\n", FILEOUTPUTNAME);
     printf("WINDOW SIZE : %d\n", WINDOWSIZE);
-    printf("BUFFER SIZE : %d\n", BUFLEN);
+    printf("BUFFER SIZE : %d\n", BUFFERSIZE);
     printf("PORT : %d\n", PORT);
 
     SOCKET s;

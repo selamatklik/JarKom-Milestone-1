@@ -8,7 +8,8 @@
 #include "Utility.h"
  
 // #define SERVER "127.0.0.1"  //ip address of udp server
-#define BUFLEN 1034  //Max length of buffer
+#define BUFLEN 1034
+#define MAXDATA 1024  //Max length of buffer
 // #define PORT 8888   //The port on which to listen for incoming data
 
 // int readFile(char *message,char *filename, int BUFLEN);
@@ -39,7 +40,7 @@ int main(int argc, char * argv[])
     char buf[BUFLEN];
     char message[BUFLEN];
     char filename[BUFLEN];
-    char bufferFileInput[BUFLEN*BUFFERSIZE];
+    char bufferFileInput[MAXDATA*BUFFERSIZE];
     WSADATA wsa;
     Packet p;
     ACK acknowledgement;
@@ -68,27 +69,30 @@ int main(int argc, char * argv[])
     si_other.sin_addr.S_un.S_addr = inet_addr(SERVER);
     
     
-    readFile(bufferFileInput,filename, BUFLEN * BUFFERSIZE);
+    readFile(bufferFileInput,FILENAME, MAXDATA * BUFFERSIZE);
+    // printf("input:%s\n",bufferFileInput);
     int SWS = 0;
     //start communication
     while(1)
     {
-        if(SWS*BUFLEN >= strlen(bufferFileInput)){
+        if(SWS*MAXDATA >= strlen(bufferFileInput)){
             break;
         }
         int idx;
-        for(idx = 0; idx<BUFLEN && idx < strlen(bufferFileInput) ; idx++){
-            message[idx] = bufferFileInput[BUFLEN*SWS+idx];
-        }
         memset(message,'\0',BUFLEN);
-        p=createPacket(message,1);
+        for(idx = 0; idx<BUFLEN && idx < strlen(bufferFileInput) ; idx++){
+            message[idx] = bufferFileInput[MAXDATA*SWS+idx];
+        }
+        // printf("message: %s\n",message);
+        p=createPacket(message,SWS);
         printf("soh: %x\n",p.soh);
         printf("SeqNumber: %d\n",p.sequenceNumber);
         printf("DataLength: %d\n",p.dataLength);
         printf("Data:\n%s\n",p.data);
         printf("checksum:%x\n",p.checksum);
         memset(message,'\0',BUFLEN);
-        packetToString(p,message);
+        packetToString(p, message);
+
         //send the message
         if (sendto(s, message, BUFLEN , 0 , (struct sockaddr *) &si_other, slen) == SOCKET_ERROR)
         {
