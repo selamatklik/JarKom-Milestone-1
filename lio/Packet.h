@@ -15,7 +15,7 @@ typedef struct{
     char soh;
     int sequenceNumber;
     int dataLength;
-    char data[1024];
+    char data[1025]; // nul terminate
     char checksum;
 } Packet;
 

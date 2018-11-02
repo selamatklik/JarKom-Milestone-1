@@ -9,7 +9,7 @@
 #include "Packet.h"
 #include "Utility.h"
  
-#define BUFLEN 1034  //Max length of buffer
+#define BUFLEN 1035  //Max length of buffer
 // #define PORT 8888   //The port on which to listen for incoming data
 // #define FILEOUTPUTNAME "output.txt"
 

@@ -8,7 +8,7 @@
 #include "Utility.h"
  
 // #define SERVER "127.0.0.1"  //ip address of udp server
-#define BUFLEN 1034
+#define BUFLEN 1035
 #define MAXDATA 1024  //Max length of buffer
 // #define PORT 8888   //The port on which to listen for incoming data
 
