@@ -26,6 +26,11 @@ struct hostent *dest_hostnet;
 // sliding window variable
 int buffer_size, window_size, last_ack_rcv, last_frame_send;
 
+struct args{
+	int* arr_ack_state;
+	unsigned long* arr_frame_time;
+};
+
 void create_socket() {
 	sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
 	if (sock_fd < 0) {
@@ -48,21 +53,21 @@ void send_message(Packet packet, int data_len) {
 	sendto(sock_fd, msg, data_len+10, MSG_CONFIRM, (const struct sockaddr *) &server_address, sizeof(server_address)); 
 }
 
-int get_ack_index() {
-	return 0;
-}
+void* receive_ack(void* input) {
+	int* arr_ack_state = ((struct args*)input)->arr_ack_state;
+	unsigned long* arr_frame_time = ((struct args*)input)->arr_frame_time;
 
-void* receive_ack(int* arr_ack_state, unsigned long* arr_frame_time) {
-
-	char* buffer[buffer_size];
+	char buffer[buffer_size];
 	memset(&buffer,0,sizeof(buffer));
 
 	int ack_len;
 	while(1) {
-		ack_len = recvfrom(sock_fd, (char*) buffer, buffer_size, MSG_WAITALL, (struct sockaddr *) &server_address, &len); 
-		
-		int ack_index = get_ack_index();
-		int error_ack = 1;
+		ack_len = recvfrom(sock_fd, (char*) buffer, buffer_size, MSG_DONTWAIT, (struct sockaddr *) &server_address, &len); 
+		ACK ack = parseACK(buffer);
+		int ack_index = ack.nextSequenceNumber;
+		printf("%d\n",ack_index);
+
+		int error_ack = 0;
 		if (!error_ack) {
 			if (last_ack_rcv < ack_index && ack_index <= last_frame_send) {
 				arr_ack_state[ack_index - (last_ack_rcv + 1 )] = 1;
@@ -116,7 +121,7 @@ int step_to_slide(int* arr_ack_state) {
 	return 0;
 }
 
-void slide_window(int step, int* arr_ack_state, int* arr_frame_send, int* arr_frame_time) {
+void slide_window(int step, int* arr_ack_state, int* arr_frame_send, unsigned long* arr_frame_time) {
 	if (step == 0) return;
 
 	for (int i=0; i<window_size-step; i++) {
@@ -169,7 +174,11 @@ int main(int argc, char* argv[]) {
 	pthread_t rcv_ack_thread;
 	int rcv_ack_thread_state;
 
-	// rcv_ack_thread_state = pthread_create(&rcv_ack_thread,NULL,&receive_ack,NULL);
+	struct args* rcv_ack_args = (struct args*)malloc(sizeof(struct args));
+	rcv_ack_args->arr_ack_state = arr_ack_state;
+	rcv_ack_args->arr_frame_time = arr_frame_time;
+
+	pthread_create(&rcv_ack_thread,NULL,receive_ack,(void*) rcv_ack_args);
 
 	int max_buf_len = 1024 * buffer_size;
 	char buffer[max_buf_len];
@@ -202,7 +211,7 @@ int main(int argc, char* argv[]) {
 					int cur_buf_ptr = frame_number * MAX_DATA_LEN;
 					int cur_data_len = MAX_DATA_LEN;
 					if (buf_len - cur_buf_ptr < MAX_DATA_LEN) {
-						cur_data_len = buf_len = cur_buf_ptr;
+						cur_data_len = buf_len - cur_buf_ptr;
 					}
 					char data[MAX_DATA_LEN];
 					memcpy(data, buffer + cur_buf_ptr, cur_data_len);
@@ -214,6 +223,7 @@ int main(int argc, char* argv[]) {
 
 					if (!arr_frame_send[i] || loss) {
 						Packet packet = createPacket(data,frame_number);
+						printf("tes:%s",packet.data);
 						send_message(packet, cur_data_len);
 						arr_frame_send[i] = 1;
 						arr_frame_time[i] = now.tv_usec;
