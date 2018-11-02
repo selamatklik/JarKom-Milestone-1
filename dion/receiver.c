@@ -62,6 +62,20 @@ int main(int argc, char* argv[]) {
 
     memset(&client_address,0,sizeof(client_address));
 
+    int finish = 1;
+    while (!finish) {
+        int arr_frame_rcv[window_size];
+        for (int i=0; i<window_size; i++) arr_frame_rcv[i] = 0;
+
+        int last_frame_rcv = -1;
+        int largest_acc_frame = last_frame_rcv + window_size;
+
+        while (1) {
+            receive_message();
+            sendto();
+        }    
+    }
+
     int i=0;
     while (i <5) {
         receive_message();
