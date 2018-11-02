@@ -8,7 +8,7 @@
 #include "Utility.h"
  
 // #define SERVER "127.0.0.1"  //ip address of udp server
-// #define BUFLEN 1034  //Max length of buffer
+#define BUFLEN 1034  //Max length of buffer
 // #define PORT 8888   //The port on which to listen for incoming data
 
 // int readFile(char *message,char *filename, int BUFLEN);
@@ -24,13 +24,13 @@ int main(int argc, char * argv[])
     // initialize variable from command
     char * FILENAME = argv[1];
     int WINDOWSIZE = charToInt(argv[2]);    
-    int BUFLEN = charToInt(argv[3]);
+    int BUFFERSIZE = charToInt(argv[3]);
     char * SERVER = argv[4];
     int PORT = charToInt(argv[5]);
 
     printf("FILE NAME : %s\n", FILENAME);
     printf("WINDOW SIZE : %d\n", WINDOWSIZE);
-    printf("BUFFER SIZE : %d\n", BUFLEN);
+    printf("BUFFER SIZE : %d\n", BUFFERSIZE);
     printf("DESTINATION IP : %s\n", SERVER);
     printf("DESTINATION PORT : %d\n", PORT);
 
@@ -39,6 +39,7 @@ int main(int argc, char * argv[])
     char buf[BUFLEN];
     char message[BUFLEN];
     char filename[BUFLEN];
+    char bufferFileInput[BUFLEN*BUFFERSIZE];
     WSADATA wsa;
     Packet p;
     ACK acknowledgement;
@@ -65,14 +66,21 @@ int main(int argc, char * argv[])
     si_other.sin_family = AF_INET;
     si_other.sin_port = htons(PORT);
     si_other.sin_addr.S_un.S_addr = inet_addr(SERVER);
-     
+    
+    
+    readFile(bufferFileInput,filename, BUFLEN * BUFFERSIZE);
+    int SWS = 0;
     //start communication
     while(1)
     {
-        printf("Enter filename : ");
-        scanf("%s",filename);
+        if(SWS*BUFLEN >= strlen(bufferFileInput)){
+            break;
+        }
+        int idx;
+        for(idx = 0; idx<BUFLEN && idx < strlen(bufferFileInput) ; idx++){
+            message[idx] = bufferFileInput[BUFLEN*SWS+idx];
+        }
         memset(message,'\0',BUFLEN);
-        readFile(message,filename, BUFLEN);
         p=createPacket(message,1);
         printf("soh: %x\n",p.soh);
         printf("SeqNumber: %d\n",p.sequenceNumber);
@@ -99,7 +107,7 @@ int main(int argc, char * argv[])
         }
         acknowledgement = parseACK(buf);
         printf("ack: %c\nnextSequenceNumber: %d\nchecksum: %x\n",acknowledgement.ack,acknowledgement.nextSequenceNumber,acknowledgement.checksum);
-
+        SWS++;
     }
  
     closesocket(s);
