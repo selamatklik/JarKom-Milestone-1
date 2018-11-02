@@ -90,6 +90,7 @@ int main(int argc, char * argv[])
         //print details of the client/peer and the data received
         printf("Received packet from %s:%d\n", inet_ntoa(si_other.sin_addr), ntohs(si_other.sin_port));
         p = parsePacket(buf);
+        printf("Packet\n");
         printf("soh: %x\n",p.soh);
         printf("SeqNumber: %d\n",p.sequenceNumber);
         printf("DataLength: %d\n",p.dataLength);
@@ -98,7 +99,7 @@ int main(int argc, char * argv[])
         writeFile(p.data,FILEOUTPUTNAME);
         memset(buf,'\0', BUFLEN);
         acknowledgement=createACK(p.sequenceNumber+1);
-        printf("ack: %c\nnextSequenceNumber: %d\nchecksum: %x\n",acknowledgement.ack,acknowledgement.nextSequenceNumber,acknowledgement.checksum);
+        printf("ACK\nack: %c\nnextSequenceNumber: %d\nchecksum: %x\n",acknowledgement.ack,acknowledgement.nextSequenceNumber,acknowledgement.checksum);
         ackToString(acknowledgement,buf);
         //now reply the client with the same data
         if (sendto(s, buf, 6, 0, (struct sockaddr*) &si_other, slen) == SOCKET_ERROR)
