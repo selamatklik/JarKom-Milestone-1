@@ -1,19 +1,17 @@
-/*
-    Simple udp client
-*/
-#include<stdio.h>
-#include<winsock2.h>
-#include<string.h>
-#include"Packet.h"
+#include <stdio.h>
+#include <winsock2.h>
+#include <string.h>
+#include "Packet.h"
 #include "Utility.h"
  
 // #define SERVER "127.0.0.1"  //ip address of udp server
-#define BUFLEN 1034
+#define BUFLEN 1035
 #define MAXDATA 1024  //Max length of buffer
 // #define PORT 8888   //The port on which to listen for incoming data
 
-// int readFile(char *message,char *filename, int BUFLEN);
-// int charToInt(char * c);
+int sock_fd, n, len, dest_port, buffer_size;
+struct sockaddr_in server_address; 
+struct hostent *dest_hostnet;
 
 int main(int argc, char * argv[])
 {
@@ -21,7 +19,6 @@ int main(int argc, char * argv[])
         perror("Command format = sendfile <filename> <windowsize> <buffersize> <destination_ip> <destination_port>");
         exit(1);
     }
-
     // initialize variable from command
     char * FILENAME = argv[1];
     int WINDOWSIZE = charToInt(argv[2]);    
@@ -45,7 +42,6 @@ int main(int argc, char * argv[])
     Packet p;
     ACK acknowledgement;
  
-
     // Initialise winsock
     printf("\nInitialising Winsock...");
     if (WSAStartup(MAKEWORD(2,2),&wsa) != 0)
@@ -68,11 +64,11 @@ int main(int argc, char * argv[])
     si_other.sin_port = htons(PORT);
     si_other.sin_addr.S_un.S_addr = inet_addr(SERVER);
     
-    
     readFile(bufferFileInput,FILENAME, MAXDATA * BUFFERSIZE);
     // printf("input:%s\n",bufferFileInput);
     int SWS = 0;
     //start communication
+    
     while(1)
     {
         if(SWS*MAXDATA >= strlen(bufferFileInput)){
