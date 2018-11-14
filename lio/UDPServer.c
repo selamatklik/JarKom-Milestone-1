@@ -100,7 +100,7 @@ int main(int argc, char * argv[])
         // printf("DataLength: %d\n",p.dataLength);
         // printf("Data:\n%s\n",p.data);
         // printf("checksum:%x\n",p.checksum);
-        if (p.checksum==checksum(p.data,p.dataLength) && p.sequenceNumber%BUFFERSIZE<=LAF && p.soh!=0x0){
+        if (p.soh!=0x0 && p.checksum==checksum(p.data,p.dataLength) && p.sequenceNumber%BUFFERSIZE<=LAF){
             // writeFile(p.data,FILEOUTPUTNAME);
             listOfPacket[p.sequenceNumber%BUFFERSIZE] = p;
             packetReceived[p.sequenceNumber%BUFFERSIZE] = true;
@@ -111,9 +111,9 @@ int main(int argc, char * argv[])
                 LAF = BUFFERSIZE-1;
             }
             printf("seqnum:%d\n",p.sequenceNumber);
-            printf("LFR:%d\nLAF:%d\n",LFR,LAF);
+            printf("LFR:%d\nLAF:%d\n",LFR+(div(p.sequenceNumber,BUFFERSIZE).quot*BUFFERSIZE),LAF+(div(p.sequenceNumber,BUFFERSIZE).quot*BUFFERSIZE));
             memset(buf,'\0', BUFLEN);
-            acknowledgement=createACK(LFR+1);
+            acknowledgement=createACK(LFR+(div(p.sequenceNumber,BUFFERSIZE).quot*BUFFERSIZE)+1);
             printf("ack: %c\nnextSequenceNumber: %d\nchecksum: %x\n",acknowledgement.ack,acknowledgement.nextSequenceNumber,acknowledgement.checksum);
             ackToString(acknowledgement,buf);
             //now reply the client with the same data
@@ -131,6 +131,9 @@ int main(int argc, char * argv[])
             LAF = 0;
             LFR = WINDOWSIZE-1;
         }
+    }
+    for (int j=0;j<=LFR;j++){
+        writeFile(listOfPacket[j].data,FILEOUTPUTNAME);
     }
     closesocket(s);
     WSACleanup();

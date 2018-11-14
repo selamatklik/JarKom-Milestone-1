@@ -34,11 +34,12 @@ int readFileCont(char *message, char *filename, int BUFLEN, int readCount){
     int i = 0;
     while (c!=EOF && i < BUFLEN){
         message[i] = c;
-        i+=1;
+        i++;
         c=fgetc(file);
     }
+    message[i] = '\0';
 
-    printf("file succesfully read\n");
+    printf("%d. read %d character\n", readCount,i);
     fclose(file);
     
     if(i<BUFLEN){

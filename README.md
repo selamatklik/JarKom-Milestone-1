@@ -24,6 +24,6 @@ checksum(x,length):
 menghitung
 
 **Pembagian Tugas**
-Krishna Aurelio N : Sender
+Krishna Aurelio N : Receiver
 M Ilyas Mustafa : Packet
-Dion Saputra : Receiver
+Dion Saputra : Sender
