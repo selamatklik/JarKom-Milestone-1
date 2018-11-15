@@ -16,15 +16,25 @@
 #define MAXDATA 1024
 
 int socket_fd;
+struct sockaddr_in serverAddress;
+
+int* ackReceived;
+
 void *receiveAck() {
     while(1) {
         int recv_len;
-        if (recv_len = recvfrom(socket_fd, buffer, BUFLEN, 0, (struct sockaddr *) &clientAddress, &s_len) == -1){
-            printf("Error in receiving packet\n");
+        int s_len = sizeof(serverAddress);
+        char ackBuffer[7];
+        memset(ackBuffer,0,sizeof(ackBuffer));
+        if (recv_len = recvfrom(socket_fd, ackBuffer, 6, 0, (struct sockaddr *) &serverAddress, &s_len) == -1){
+            printf("Error in receiving ACK\n");
             exit(1);
         } else {
-            printf("Packet received\n");
+            printf("ACK received\n");
         }
+
+        ACK ack = parseACK(ackBuffer);
+        printf("%d\n",ack.nextSequenceNumber);
     }
 }
 
@@ -49,7 +59,7 @@ int main(int argc, char* argv[]) {
     printf("Destination port: %d\n", port);
 
     // create socket
-    int socket_fd = socket(AF_INET, SOCK_DGRAM, 0);
+    socket_fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (socket_fd < 0) {
         perror("Socket creation failed\n");
         exit(1);
@@ -58,7 +68,6 @@ int main(int argc, char* argv[]) {
     }
 
     // fill client info
-    struct sockaddr_in serverAddress;
     memset(&serverAddress,0,sizeof(serverAddress));
     serverAddress.sin_family = AF_INET;
     serverAddress.sin_port = htons(port);
@@ -69,60 +78,69 @@ int main(int argc, char* argv[]) {
     int maxBufLen = MAXDATA * bufferSize;
     char buffer[maxBufLen + 1];
 
-    int finishRead = 0;
-    int slidingWindowSize = windowSize * MAXDATA;
+    ackReceived = (int*) malloc(sizeof(int) * windowSize);
+    for (int i=0; i<windowSize; i++) ackReceived[i] = 0;
 
     int lastAckReceived = 0;
-    int lastFrameSent = lastAckReceived + windowSize;
+    int lastFrameSent = lastAckReceived + windowSize - 1;
 
     pthread_t t;
     int x = pthread_create(&t,NULL,receiveAck,NULL);
 
+    int finishRead = 0;
     while (!finishRead) {
         memset(buffer,0,sizeof(buffer));
         int bufLen = fread(buffer,1,maxBufLen,fileInput);
 
+        printf("buflen: %d\n", bufLen);
         if (bufLen == 0) {
             break;
         } else if (bufLen < maxBufLen) {
             finishRead = 1;
         }
-        
-        for (int i=lastAckReceived; i<=lastFrameSent; i++) {
-            char message[MAXDATA];
-            memset(message,'\0',sizeof(message));
+        printf("%d %d\n", lastAckReceived, bufferSize);
+        while (lastAckReceived <= bufferSize) {
+            // printf("%d %d", lastFrameSent, bufferSize);
+            for (int i=lastAckReceived; i<=lastFrameSent; i++) {
+                char message[MAXDATA];
+                memset(message,'\0',sizeof(message));
 
-            int startMessage = i * MAXDATA;
-            int endMessage = startMessage + MAXDATA;
-            if (endMessage-startMessage > bufLen) {
-                endMessage = startMessage + bufLen;
+                int startMessage = i * MAXDATA;
+                int endMessage = startMessage + MAXDATA;
+                if (endMessage-startMessage > bufLen) {
+                    endMessage = startMessage + bufLen;
+                }
+
+                int j;
+                for (j=startMessage; j<endMessage; j++) {
+                    message[j-startMessage] = buffer[j];
+                }
+
+                printf("%s\n",message);
+
+                // create packet
+                Packet p = createPacket(message,i);
+                // printf("Packet\n");
+                // printf("soh: %x\n",p.soh);
+                // printf("SeqNumber: %d\n",p.sequenceNumber);
+                // printf("DataLength: %d\n",p.dataLength);
+                // printf("Data:\n%s\n",p.data);
+                printf("checksum:%x\n",p.checksum);
+
+                if (p.dataLength > 0) {
+                    char strPacket[PACKETLEN];
+                    memset(strPacket,0,sizeof(strPacket));
+                    packetToString(p,strPacket);
+                
+                    sendto(socket_fd,strPacket,PACKETLEN,0, (struct sockaddr*) &serverAddress, sizeof(serverAddress));   
+                }
             }
-
-            int j;
-            for (j=startMessage; j<endMessage; j++) {
-                message[j-startMessage] = buffer[j];
-            }
-
-            printf("%s\n",message);
-
-            // create packet
-            Packet p = createPacket(message,i);
-            // printf("Packet\n");
-            // printf("soh: %x\n",p.soh);
-            // printf("SeqNumber: %d\n",p.sequenceNumber);
-            // printf("DataLength: %d\n",p.dataLength);
-            // printf("Data:\n%s\n",p.data);
-            printf("checksum:%x\n",p.checksum);
-
-            if (p.dataLength > 0) {
-                char strPacket[PACKETLEN];
-                memset(strPacket,0,sizeof(strPacket));
-                packetToString(p,strPacket);
-            
-                sendto(socket_fd,strPacket,PACKETLEN,0, (struct sockaddr*) &serverAddress, sizeof(serverAddress));   
-            }
+            lastAckReceived = lastFrameSent + 1;
+            lastFrameSent = lastAckReceived + windowSize - 1;
+            if (lastFrameSent > bufferSize) lastFrameSent = bufferSize-1;
         }
-        lastAckReceived++;
+
+
     }
 
     Packet p = createPacket("",0);
@@ -132,6 +150,7 @@ int main(int argc, char* argv[]) {
     packetToString(p,strPacket);
     sendto(socket_fd,strPacket, PACKETLEN, 0, (struct sockaddr*) &serverAddress, sizeof(serverAddress));
 
+    while(1);
     close(socket_fd);
     return 0;
 }
