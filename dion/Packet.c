@@ -1,6 +1,6 @@
 #include "Packet.h"
 
-Packet createPacket(char* data,int sequenceNumber){
+Packet createPacket(char* data, int sequenceNumber){
     Packet p;
     p.soh=0x1;
     p.sequenceNumber=sequenceNumber;
@@ -18,12 +18,12 @@ Packet createPacket(char* data,int sequenceNumber){
 void packetToString(Packet p, char* message){
     message[0] = p.soh;
     int i;
-    char * sequenceNumber = (char *) &p.sequenceNumber;
+    char* sequenceNumber = (char *) &p.sequenceNumber;
     message[1] = *sequenceNumber;
     message[2] = *(sequenceNumber + 1);
     message[3] = *(sequenceNumber + 2);
     message[4] = *(sequenceNumber + 3);
-    char * dataLength = (char *) &p.dataLength;
+    char* dataLength = (char *) &p.dataLength;
     message[5] = *dataLength;
     message[6] = *(dataLength + 1);
     message[7] = *(dataLength + 2);

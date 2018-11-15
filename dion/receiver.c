@@ -6,83 +6,188 @@
 #include <string.h>
 #include "Packet.h"
 
-int sock_fd, len, window_size, buffer_size, port;
-struct sockaddr_in server_address, client_address;
+#define MAXDATA 1024
+#define BUFLEN 1035
 
-void create_socket() {
-    sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sock_fd < 0) {
-        perror("socket creation failed");
-        exit(EXIT_FAILURE);
+int getLFR(int* packetReceived, int BUFFERSIZE){
+    int i;
+    for (i = BUFFERSIZE-1; i>=0; i--){
+        if (packetReceived[i] == 1){
+            return i;
+        }
     }
 }
 
-void fill_server_info() {
-    memset(&server_address,0,sizeof(server_address));
-    server_address.sin_family = AF_INET;
-    server_address.sin_addr.s_addr = INADDR_ANY;
-    server_address.sin_port = htons(port);
-}
+int main(int argc, char* argv[]) { 
 
-void bind_socket() {
-    int bind_status = bind(sock_fd, (const struct sockaddr *) &server_address, sizeof(server_address));
-    if (bind_status < 0) {
-        perror("socket bind to server failed");
-        exit(EXIT_FAILURE);
+    // check input format is valid
+    if(argc != 5) {
+        perror("Command format = recvfile <filename> <windowsize> <buffersize> <port>\n");
+        exit(1);
     }
-}
 
-Packet receive_message() {
-    int n;
-    char buffer[buffer_size + 1];
-    n = recvfrom(sock_fd, (char*)buffer, buffer_size, MSG_WAITALL, (struct sockaddr*) &client_address, &len);
-    buffer[n] = '\0';
-    
-    return parsePacket(buffer);
-}
+    // get argument value
+    char* fileOutputName = argv[1];
+    int windowSize = atoi(argv[2]);
+    int bufferSize = atoi(argv[3]) * MAXDATA;
+    int port = atoi(argv[4]);
 
-void send_ack(ACK ack) {
-    char str_ack[7];
-    ackToString(ack, str_ack);
-    sendto(sock_fd, str_ack, 6, MSG_CONFIRM, (struct sockaddr*) &client_address, len);
-}
+    // display input argument
+    printf("File name: %s\n", fileOutputName);
+    printf("Window size: %d\n", windowSize);
+    printf("Buffer size: %d\n", bufferSize);
+    printf("Port: %d\n", port);
 
-int main(int argc, char* argv[]) {
+    // initialize main variable
+    Packet listOfPacket[bufferSize + 1];
+    int packetReceived[bufferSize + 1];
+    int lastAcceptedFrame = windowSize - 1;
+    int lastFrameReceived = 0;
 
-    if (argc == 5) {
-        window_size = atoi(argv[2]);
-        buffer_size = 1024 * atoi(argv[3]);
-        port = atoi(argv[4]);
+    // create socket
+    int socket_fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (socket_fd < 0) {
+        perror("Socket creation failed\n");
+        exit(1);
     } else {
-        perror("Command format: ./recvfile <filename> <windowsize> <buffersize> <port>");
-        return 1;
+        printf("Socket creation success\n");
     }
 
-    create_socket();
-    fill_server_info();
-    bind_socket();
+    // fill server info
+    struct sockaddr_in serverAddress, clientAddress;
+    memset(&serverAddress,0,sizeof(serverAddress));
+    memset(&clientAddress,0,sizeof(clientAddress));
+    serverAddress.sin_family = AF_INET;
+    serverAddress.sin_addr.s_addr = INADDR_ANY;
+    serverAddress.sin_port = htons(port);
 
-    memset(&client_address,0,sizeof(client_address));
+    // bind socket
+    int bindStatus = bind(socket_fd, (const struct sockaddr*) &serverAddress, sizeof(serverAddress));
+    if (bindStatus < 0) {
+        perror("Socket bind to server failed\n");
+        exit(1);
+    } else {
+        printf("Socket bind to server success\n");
+    }
 
-    int finish = 0;
-    while (!finish) {
-        int arr_frame_rcv[window_size];
-        for (int i=0; i<window_size; i++) arr_frame_rcv[i] = 0;
+    // copast from lio
+    writeFileInitiate(fileOutputName);
+    Packet p;
+    ACK ack;
+    char buffer[BUFLEN];
 
-        int last_frame_rcv = -1;
-        int largest_acc_frame = last_frame_rcv + window_size;
+    // receive until last packet
+    while (p.soh != 0x0) {
+        printf("Waiting for data...\n");
+    
+        // clear buffer 
+        memset(buffer,'\0',BUFLEN);
 
-        Packet curr_packet = receive_message();
-        printf("%s\n",curr_packet.data);
-        ACK curr_ack = createACK(curr_packet.sequenceNumber + 1);
-        send_ack(curr_ack);
-        // if (curr_packet.checksum == checksum(curr_packet.data, curr_packet.dataLength)) {
-        //     ACK curr_ack = createACK(curr_packet.sequenceNumber + 1);
-        //     send_ack(curr_ack);
-        // }
+        int recv_len;
+        int s_len = sizeof(clientAddress);
         
+        if (recv_len = recvfrom(socket_fd, buffer, BUFLEN, 0, (struct sockaddr *) &clientAddress, &s_len) == -1){
+            printf("Error in receiving packet\n");
+            exit(1);
+        } else {
+            printf("Packet received\n");
+        }
+
+        // parse buffer to packet
+        p = parsePacket(buffer);
+        printf("Soh: %x\n",p.soh);
+        if (p.soh == 0x0) {
+            break;
+        }
+        // printf("Data: %s\n",p.data);
+
+        int lastPacket = p.soh == 0x0;
+        int finePacket = p.checksum == checksum(p.data,p.dataLength);
+        int acceptablePacket = p.sequenceNumber%bufferSize <= lastAcceptedFrame;
+
+        if (!lastPacket && finePacket && acceptablePacket) {
+            listOfPacket[p.sequenceNumber%bufferSize] = p;
+            packetReceived[p.sequenceNumber%bufferSize] = 1;
+            lastFrameReceived = getLFR(packetReceived, bufferSize);
+
+            if (lastFrameReceived + windowSize < bufferSize) {
+                lastAcceptedFrame = lastFrameReceived + windowSize;
+            } else {
+                lastAcceptedFrame = bufferSize - 1;
+            }
+
+            // display packet received info
+            printf("Sequence number: %d\n", p.sequenceNumber);
+            printf("Last frame received: %d\n", lastFrameReceived + (div(p.sequenceNumber,bufferSize).quot * bufferSize));
+            printf("Last accepted frame: %d\n", lastAcceptedFrame+(div(p.sequenceNumber,bufferSize).quot*bufferSize));
+
+            memset(buffer,'\0',BUFLEN);
+
+            ack = createACK(lastFrameReceived+(div(p.sequenceNumber,bufferSize).quot*bufferSize)+1);
+            printf("ACK: %c\nnextSequenceNumber: %d\nchecksum: %x\n",ack.ack,ack.nextSequenceNumber,ack.checksum);
+            ackToString(ack,buffer);
+
+            sendto(socket_fd,buffer,6,0,(struct sockaddr*) &clientAddress, sizeof(clientAddress));
+        }
+
+        if (lastFrameReceived == bufferSize - 1) {
+            for (int i=0; i<bufferSize; i++) {
+                // printf("%s\n",listOfPacket[i].data);
+                writeFileLen(listOfPacket[i].data, fileOutputName, listOfPacket[i].dataLength);
+            }
+            memset(packetReceived,0,bufferSize);
+            lastAcceptedFrame = 0;
+            lastFrameReceived = windowSize - 1;
+        }
     }
 
-    close(sock_fd);
+    for (int i=0; i<=lastFrameReceived; i++) {
+        // printf("%s",listOfPacket[i].data);
+        writeFileLen(listOfPacket[i].data, fileOutputName, listOfPacket[i].dataLength);
+    }
+
+    close(socket_fd);
     return 0;
 }
+
+
+// int sock_fd, len, window_size, buffer_size, port;
+// struct sockaddr_in client_address;
+
+// void create_socket() {
+//     sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
+//     if (sock_fd < 0) {
+//         perror("socket creation failed");
+//         exit(EXIT_FAILURE);
+//     }
+// }
+
+// void fill_server_info() {
+//     memset(&server_address,0,sizeof(server_address));
+//     server_address.sin_family = AF_INET;
+//     server_address.sin_addr.s_addr = INADDR_ANY;
+//     server_address.sin_port = htons(port);
+// }
+
+// void bind_socket() {
+//     int bind_status = bind(sock_fd, (const struct sockaddr *) &server_address, sizeof(server_address));
+//     if (bind_status < 0) {
+//         perror("socket bind to server failed");
+//         exit(EXIT_FAILURE);
+//     }
+// }
+
+// Packet receive_message() {
+//     int n;
+//     char buffer[buffer_size + 1];
+//     n = recvfrom(sock_fd, (char*)buffer, buffer_size, MSG_WAITALL, (struct sockaddr*) &client_address, &len);
+//     buffer[n] = '\0';
+    
+//     return parsePacket(buffer);
+// }
+
+// void send_ack(ACK ack) {
+//     char str_ack[7];
+//     ackToString(ack, str_ack);
+//     sendto(sock_fd, str_ack, 6, MSG_CONFIRM, (struct sockaddr*) &client_address, len);
+// }

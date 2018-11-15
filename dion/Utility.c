@@ -1,10 +1,10 @@
 #include "Utility.h"
 
-int readFile(char *message, char *filename) {
+int readFile(char *message,char *filename, int BUFLEN){
     FILE *file = fopen(filename,"r");
     char c = fgetc(file);
     int i = 0;
-    while (c != EOF){
+    while (c!=EOF && i < BUFLEN){
         message[i] = c;
         i+=1;
         c=fgetc(file);
@@ -13,31 +13,52 @@ int readFile(char *message, char *filename) {
     fclose(file);
 }
 
-void read_file(char* message, char *file_name) {
-	if (access(file_name, F_OK) == -1) {
-		printf("File not found\n");
-		exit(EXIT_FAILURE);
-	} else {
-		FILE *file = fopen(file_name,"r");
-		char c = fgetc(file); int i=0;
-		while (c != EOF && i < BUFFER_LEN) {
-			message[i] = c;
-			i++; c = fgetc(file);
-		}
-
-		printf("Read file completed\n");
-		fclose(file);
-	}
+int writeFileInitiate(char *filename){
+    FILE *file = fopen(filename,"w");
+    fclose(file);
 }
 
-int writeFile(char *message, char *filename, int BUFLEN){
-    FILE *file = fopen(filename,"w");
+int writeFile(char *message, char *filename){
+    FILE *file = fopen(filename,"a");
     int i = 0;
-    while (message[i]!='\0' && i < BUFLEN){
+    while (message[i]!='\0'){
         fputc(message[i],file);
-        i+=1;
+        i++;
     }
     fclose(file);
+}
+
+int writeFileLen(char *message, char *filename, int len){
+    FILE *file = fopen(filename,"a");
+    int i = 0;
+    while (i < len){
+        fputc(message[i],file);
+        i++;
+    }
+    fclose(file);
+}
+
+int readFileCont(char *message, char *filename, int BUFLEN, int readCount){
+    FILE *file = fopen(filename,"r");
+    fseek(file, readCount*BUFLEN, SEEK_SET );
+    char c = fgetc(file);
+    int i = 0;
+    while (c!=EOF && i < BUFLEN){
+        message[i] = c;
+        i++;
+        c=fgetc(file);
+    }
+    message[i] = '\0';
+
+    printf("%d. read %d character\n", readCount,i);
+    fclose(file);
+    
+    if(i<BUFLEN){
+        return 1;
+    } else {
+        return 0;
+    }
+    
 }
 
 int charToInt(char * c) {
