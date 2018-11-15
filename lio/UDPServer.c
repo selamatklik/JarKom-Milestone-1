@@ -30,7 +30,7 @@ int main(int argc, char * argv[])
     int PORT = charToInt(argv[4]);
     Packet listOfPacket[BUFFERSIZE];
     bool packetReceived[BUFFERSIZE+1];
-    int LAF=WINDOWSIZE-1,LFR=0;
+    int LAF=WINDOWSIZE-1,LFR=-1;
 
     printf("FILE NAME : %s\n", FILEOUTPUTNAME);
     printf("WINDOW SIZE : %d\n", WINDOWSIZE);
@@ -100,7 +100,7 @@ int main(int argc, char * argv[])
         // printf("DataLength: %d\n",p.dataLength);
         // printf("Data:\n%s\n",p.data);
         // printf("checksum:%x\n",p.checksum);
-        if (p.soh!=0x0 && p.checksum==checksum(p.data,p.dataLength) && p.sequenceNumber%BUFFERSIZE<=LAF){
+        if (p.soh!=0x0 && p.checksum==checksum(p.data,p.dataLength) && p.sequenceNumber%BUFFERSIZE<=LAF && p.sequenceNumber%BUFFERSIZE>LFR){
             // writeFile(p.data,FILEOUTPUTNAME);
             listOfPacket[p.sequenceNumber%BUFFERSIZE] = p;
             packetReceived[p.sequenceNumber%BUFFERSIZE] = true;
@@ -125,14 +125,17 @@ int main(int argc, char * argv[])
         }
         if (LFR == BUFFERSIZE-1){
              for (int i=0;i<BUFFERSIZE;i++){
+                // printf("writing frame %d\n",i);
                 writeFile(listOfPacket[i].data,FILEOUTPUTNAME);
             }
             memset(packetReceived,false,BUFFERSIZE);
-            LAF = 0;
-            LFR = WINDOWSIZE-1;
+            LFR = -1;
+            LAF = WINDOWSIZE-1;
         }
     }
+    // printf("------------------------------------------------------------------------\n");
     for (int j=0;j<=LFR;j++){
+        // printf("writing frame %d\n",j);
         writeFile(listOfPacket[j].data,FILEOUTPUTNAME);
     }
     closesocket(s);
