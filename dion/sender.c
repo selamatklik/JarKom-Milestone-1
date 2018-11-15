@@ -15,6 +15,19 @@
 #define PACKETLEN 1035
 #define MAXDATA 1024
 
+int socket_fd;
+void *receiveAck() {
+    while(1) {
+        int recv_len;
+        if (recv_len = recvfrom(socket_fd, buffer, BUFLEN, 0, (struct sockaddr *) &clientAddress, &s_len) == -1){
+            printf("Error in receiving packet\n");
+            exit(1);
+        } else {
+            printf("Packet received\n");
+        }
+    }
+}
+
 int main(int argc, char* argv[]) {
     
     // check argument input
@@ -61,6 +74,9 @@ int main(int argc, char* argv[]) {
 
     int lastAckReceived = 0;
     int lastFrameSent = lastAckReceived + windowSize;
+
+    pthread_t t;
+    int x = pthread_create(&t,NULL,receiveAck,NULL);
 
     while (!finishRead) {
         memset(buffer,0,sizeof(buffer));
